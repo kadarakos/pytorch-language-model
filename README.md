@@ -22,3 +22,13 @@ On GTX 1080 I am getting around 7,400 wps.
 ## Requirements
 * Python 3 (I used Anaconda distribution)
 * PyTorch (I used 0.1.12)
+
+## Data 
+
+PTB data comes from http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz
+Go to the directory where you prefer to keep the data and:
+```
+wget http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz 
+tar -xvzf simple-examples.tgz
+```
+
