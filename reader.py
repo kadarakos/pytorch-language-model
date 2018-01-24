@@ -14,7 +14,7 @@
 # ==============================================================================
 
 
-"""Utilities for parsing PTB text files."""
+"""Utilities for parsing PTB and Text8 text files."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
@@ -27,12 +27,18 @@ import tensorflow as tf
 
 
 def _read_words(filename):
+  """Read textfile into a list of words."""
   with tf.gfile.GFile(filename, "r") as f:
     return f.read().replace("\n", "<eos>").split()
 
 
-def _build_vocab(filename):
-  data = _read_words(filename)
+def _read_chars(filename):
+  """Read textfile into a list of characters. """
+  with open(filename, "r") as f:
+    return list(f.read())
+
+
+def _build_vocab(data):
 
   counter = collections.Counter(data)
   count_pairs = sorted(counter.items(), key=lambda x: (-x[1], x[0]))
@@ -44,8 +50,7 @@ def _build_vocab(filename):
   return word_to_id, id_to_word
 
 
-def _file_to_word_ids(filename, word_to_id):
-  data = _read_words(filename)
+def _file_to_word_ids(data, word_to_id):
   return [word_to_id[word] for word in data if word in word_to_id]
 
 
@@ -66,11 +71,37 @@ def ptb_raw_data(data_path=None, prefix="ptb"):
   train_path = os.path.join(data_path, prefix + ".train.txt")
   valid_path = os.path.join(data_path, prefix + ".valid.txt")
   test_path = os.path.join(data_path, prefix + ".test.txt")
+  train_w = _read_words(train_path)
+  valid_w = _read_words(valid_path)
+  test_w = _read_words(test_path)
+  word_to_id, id_2_word = _build_vocab(train_w)
+  train_data = _file_to_word_ids(train_w, word_to_id)
+  valid_data = _file_to_word_ids(valid_w, word_to_id)
+  test_data = _file_to_word_ids(test_w, word_to_id)
+  return train_data, valid_data, test_data, word_to_id, id_2_word
 
-  word_to_id, id_2_word = _build_vocab(train_path)
-  train_data = _file_to_word_ids(train_path, word_to_id)
-  valid_data = _file_to_word_ids(valid_path, word_to_id)
-  test_data = _file_to_word_ids(test_path, word_to_id)
+
+def text8_raw_data(data_path=None):
+  """Load text8 raw data from "data_path".
+  Reads the text8 text file, converts strings to integer ids,
+  and performs mini-batching of the inputs. Uses the standard
+  train, val, test splits from Mikolov et al. (2012).
+  http://www.fit.vutbr.cz/~imikolov/rnnlm/char.pdf
+  The text8 dataset comes from http://mattmahoney.net/dc/text8.zip:
+  Args:
+    data_path: string path to the text8 file.
+  Returns:
+    tuple (train_data, valid_data, test_data, vocabulary)
+    where each of the data objects can be passed to PTBIterator.
+  """
+  text8 = _read_chars(data_path)
+  train = text8[:int(9e7)]
+  val = text8[int(9e7):int(95e6)]
+  test = text8[int(95e6):]
+  word_to_id, id_2_word = _build_vocab(train)
+  train_data = _file_to_word_ids(train, word_to_id)
+  valid_data = _file_to_word_ids(val, word_to_id)
+  test_data = _file_to_word_ids(test, word_to_id)
   return train_data, valid_data, test_data, word_to_id, id_2_word
 
 
@@ -107,3 +138,4 @@ def ptb_iterator(raw_data, batch_size, num_steps):
     x = data[:, i*num_steps:(i+1)*num_steps]
     y = data[:, i*num_steps+1:(i+1)*num_steps+1]
     yield (x, y)
+
