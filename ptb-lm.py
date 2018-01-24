@@ -134,7 +134,7 @@ if __name__ == "__main__":
         torch.save(model, f)
     else:
         notimprove += 1
-    if notimprove == patience:
+    if notimprove == args.patience:
       print("Breaking, haven't seen improvement in {} epochs".format(notimprove))
       break
     print('Validation perplexity at epoch {}: {:8.2f}, best: {:8.2f}'.format(epoch, val_ppl, best_val))
