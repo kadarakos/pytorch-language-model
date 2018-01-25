@@ -1,7 +1,6 @@
 import torch.nn as nn
 from torch.autograd import Variable
-from denura import lstm
-from denura import topdown
+from denura import topdown, ran
 
 class LM_LSTM(nn.Module):
   """Simple LSMT-based language model"""
@@ -15,7 +14,7 @@ class LM_LSTM(nn.Module):
     self.num_layers = num_layers
     self.dropout = nn.Dropout(1 - dp_keep_prob)
     self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
-    self.lstm = nn.LSTM(input_size=embedding_dim,
+    self.lstm = ran.RAN(input_size=embedding_dim,
                         hidden_size=embedding_dim,
                         num_layers=num_layers,
                         dropout=1 - dp_keep_prob)

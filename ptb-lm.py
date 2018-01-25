@@ -7,6 +7,7 @@ import torch.nn as nn
 from lm import repackage_hidden, LM_LSTM
 import reader
 import numpy as np
+import sys
 from pprint import pprint
 seed = 101010
 
@@ -44,6 +45,10 @@ parser.add_argument('--patience', type=int,  default=None,
                     help='Number of epochs to continue running without improvement on the validation set')
 parser.add_argument('--save', type=str,  default='lm_model.pt',
                     help='path to save the final model')
+parser.add_argument('--checkpoint', type=str,
+                    help='path to model checkpoint')
+parser.add_argument('--eval', action='store_true',
+                    help='only run evaluation')
 args = parser.parse_args()
 pprint(args)
 
@@ -99,16 +104,21 @@ if __name__ == "__main__":
   train_data, valid_data, test_data, word_to_id, id_2_word = raw_data
   vocab_size = len(word_to_id)
   print('Vocabluary size: {}'.format(vocab_size))
-  model = LM_LSTM(embedding_dim=args.hidden_size, num_steps=args.num_steps, batch_size=args.batch_size,
-                  vocab_size=vocab_size, num_layers=args.num_layers, dp_keep_prob=args.dp_keep_prob)
-  print(model)
-  model.cuda()
+  if args.eval:
+    model = torch.load(args.checkpoint)
+    optimizer = torch.optim.SGD(model.parameters(), lr=args.initial_lr)
+    print('Test Perplexity: {:8.2f}'.format(run_epoch(model, test_data, optimizer)))
+    sys.exit()
   lr = args.initial_lr
   # decay factor for learning rate
   lr_decay_base = 1 / 1.15
   # we will not touch lr for the first m_flat_lr epochs
   m_flat_lr = 14.0
+  model = LM_LSTM(embedding_dim=args.hidden_size, num_steps=args.num_steps, batch_size=args.batch_size,
+                  vocab_size=vocab_size, num_layers=args.num_layers, dp_keep_prob=args.dp_keep_prob)
 
+  model.cuda()
+  print(model)
   print("########## Training ##########################")
   if args.optimizer == "sgd":
     optimizer = torch.optim.SGD(model.parameters(), lr=args.initial_lr)
