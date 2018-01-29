@@ -19,6 +19,8 @@ parser = argparse.ArgumentParser(description='Simplest LSTM-based language model
 parser.add_argument('--data_set', type=str, default='ptb', choices=['ptb', 'text8'])
 parser.add_argument('--data_path', type=str, default='data',
                     help='location of the data corpus')
+parser.add_argument('--embedding_size', type=int, default=1500,
+                    help='size of word embeddings')
 parser.add_argument('--hidden_size', type=int, default=1500,
                     help='size of word embeddings')
 parser.add_argument('--num_steps', type=int, default=35,
@@ -41,7 +43,7 @@ parser.add_argument('--lr_schedule', type=str, choices=["default", "none"], defa
                     help='Type of learning rate schedule to use.')
 parser.add_argument('--grad_clip', type=float, default=0.25,
                     help='Gradient clipping bound.')
-parser.add_argument('--patience', type=int,  default=None,
+parser.add_argument('--patience', type=int,  default=2,
                     help='Number of epochs to continue running without improvement on the validation set')
 parser.add_argument('--save', type=str,  default='lm_model.pt',
                     help='path to save the final model')
@@ -114,7 +116,7 @@ if __name__ == "__main__":
   lr_decay_base = 1 / 1.15
   # we will not touch lr for the first m_flat_lr epochs
   m_flat_lr = 14.0
-  model = LM_LSTM(embedding_dim=args.hidden_size, num_steps=args.num_steps, batch_size=args.batch_size,
+  model = LM_LSTM(embedding_dim=args.embedding_size, hidden_size=args.hidden_size, num_steps=args.num_steps, batch_size=args.batch_size,
                   vocab_size=vocab_size, num_layers=args.num_layers, dp_keep_prob=args.dp_keep_prob)
 
   model.cuda()

@@ -1,12 +1,13 @@
 import torch.nn as nn
 from torch.autograd import Variable
-from denura import topdown, ran
+from denura import topdown, ran, hmlstm
 
 class LM_LSTM(nn.Module):
   """Simple LSMT-based language model"""
-  def __init__(self, embedding_dim, num_steps, batch_size, vocab_size, num_layers, dp_keep_prob):
+  def __init__(self, embedding_dim, hidden_size, num_steps, batch_size, vocab_size, num_layers, dp_keep_prob):
     super(LM_LSTM, self).__init__()
     self.embedding_dim = embedding_dim
+    self.hidden_size = hidden_size
     self.num_steps = num_steps
     self.batch_size = batch_size
     self.vocab_size = vocab_size
@@ -14,11 +15,11 @@ class LM_LSTM(nn.Module):
     self.num_layers = num_layers
     self.dropout = nn.Dropout(1 - dp_keep_prob)
     self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
-    self.lstm = ran.RAN(input_size=embedding_dim,
-                        hidden_size=embedding_dim,
+    self.lstm =  hmlstm.HMLSTM(input_size=self.embedding_dim,
+                        hidden_size=self.hidden_size,
                         num_layers=num_layers,
                         dropout=1 - dp_keep_prob)
-    self.sm_fc = nn.Linear(in_features=embedding_dim,
+    self.sm_fc = nn.Linear(in_features=self.hidden_size,
                            out_features=vocab_size)
     self.init_weights()
   #TODO make orthogonal init optional
@@ -35,15 +36,14 @@ class LM_LSTM(nn.Module):
                               
   def init_hidden(self):
     weight = next(self.parameters()).data
-    return (Variable(weight.new(self.num_layers, self.batch_size, self.embedding_dim).zero_()),
-            Variable(weight.new(self.num_layers, self.batch_size, self.embedding_dim).zero_()))
+    return (Variable(weight.new(self.num_layers, self.batch_size, self.hidden_size).zero_()),
+            Variable(weight.new(self.num_layers, self.batch_size, self.hidden_size).zero_()))
 
   def forward(self, inputs, hidden):
-    #TODO dropout only during training
     embeds = self.dropout(self.word_embeddings(inputs))
     lstm_out, hidden = self.lstm(embeds, hidden)
     lstm_out = self.dropout(lstm_out)
-    logits = self.sm_fc(lstm_out.view(-1, self.embedding_dim))
+    logits = self.sm_fc(lstm_out.view(-1, self.hidden_size))
     return logits.view(self.num_steps, self.batch_size, self.vocab_size), hidden
 
 def repackage_hidden(h):
