@@ -32,3 +32,9 @@ wget http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz
 tar -xvzf simple-examples.tgz
 ```
 
+Text8 data set comes from:
+```
+wget http://mattmahoney.net/dc/text8.zip 
+unzip text8.zip
+```
+
