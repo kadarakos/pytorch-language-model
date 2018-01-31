@@ -105,6 +105,31 @@ def text8_raw_data(data_path=None):
   return train_data, valid_data, test_data, word_to_id, id_2_word
 
 
+def coco_raw_data(data_path=None):
+  """Load MSCOCO raw data from "data_path".
+  Reads the text8 text file, converts strings to integer ids,
+  and performs mini-batching of the inputs. Uses the standard
+  train, val, test splits from Mikolov et al. (2012).
+  http://www.fit.vutbr.cz/~imikolov/rnnlm/char.pdf
+  The text8 dataset comes from http://mattmahoney.net/dc/text8.zip:
+  Args:
+    data_path: string path to the text8 file.
+  Returns:
+    tuple (train_data, valid_data, test_data, vocabulary)
+    where each of the data objects can be passed to PTBIterator.
+  """
+  train= _read_chars(os.path.join(data_path, "train_caps.txt"))
+  val = _read_chars(os.path.join(data_path, "dev_caps.txt"))
+  test = _read_chars(os.path.join(data_path, "test_caps.txt"))
+  chars = set(train)
+  id_2_word = dict(enumerate(chars))
+  word_to_id = {i: w for w, i in id_2_word.items()}
+  train_data = _file_to_word_ids(train, word_to_id)
+  valid_data = _file_to_word_ids(val, word_to_id)
+  test_data = _file_to_word_ids(test, word_to_id)
+  return train_data, valid_data, test_data, word_to_id, id_2_word
+
+
 def ptb_iterator(raw_data, batch_size, num_steps):
   """Iterate on the raw PTB data.
   This generates batch_size pointers into the raw PTB data, and allows
