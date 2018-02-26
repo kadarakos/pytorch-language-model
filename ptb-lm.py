@@ -9,6 +9,8 @@ import reader
 import numpy as np
 import sys
 from pprint import pprint
+from vis import BoundaryVisualizer
+
 seed = 101010
 
 torch.cuda.manual_seed(seed)
@@ -16,7 +18,7 @@ torch.manual_seed(seed)
 np.random.seed(seed)
 
 parser = argparse.ArgumentParser(description='Simplest LSTM-based language model in PyTorch')
-parser.add_argument('--data_set', type=str, default='ptb', choices=['ptb', 'text8'])
+parser.add_argument('--data_set', type=str, default='ptb', choices=['ptb', 'text8', 'coco'])
 parser.add_argument('--data_path', type=str, default='data',
                     help='location of the data corpus')
 parser.add_argument('--embedding_size', type=int, default=1500,
@@ -51,6 +53,8 @@ parser.add_argument('--checkpoint', type=str,
                     help='path to model checkpoint')
 parser.add_argument('--eval', action='store_true',
                     help='only run evaluation')
+parser.add_argument('--vis_bounds', action='store_true',
+                    help='Run visualization ')
 args = parser.parse_args()
 pprint(args)
 
@@ -90,9 +94,9 @@ def run_epoch(model, data, optimizer, is_train=False):
       loss.backward()
       torch.nn.utils.clip_grad_norm(model.parameters(), args.grad_clip)
       optimizer.step()
-      #for p in model.parameters():
-      #  p.data.add_(-lr, p.grad.data)
       if step % (epoch_size // 10) == 10:
+        if args.vis_bounds:
+            visualizer.run_vis(1)  
         print("{} : {} {:8.4f} speed: {} wps".format(step * 1.0 / epoch_size, metric, perf,
                                                        iters * model.batch_size / (time.time() - start_time)))
   return perf
@@ -101,6 +105,8 @@ def run_epoch(model, data, optimizer, is_train=False):
 if __name__ == "__main__":
   if args.data_set == 'text8':
     raw_data = reader.text8_raw_data(data_path=args.data_path)
+  elif args.data_set == 'coco':
+      raw_data = reader.coco_raw_data(data_path=args.data_path)
   else:
     raw_data = reader.ptb_raw_data(data_path=args.data_path)
   train_data, valid_data, test_data, word_to_id, id_2_word = raw_data
@@ -108,6 +114,7 @@ if __name__ == "__main__":
   print('Vocabluary size: {}'.format(vocab_size))
   if args.eval:
     model = torch.load(args.checkpoint)
+    model.batch_size = args.batch_size
     optimizer = torch.optim.SGD(model.parameters(), lr=args.initial_lr)
     print('Test Perplexity: {:8.2f}'.format(run_epoch(model, test_data, optimizer)))
     sys.exit()
@@ -118,7 +125,11 @@ if __name__ == "__main__":
   m_flat_lr = 14.0
   model = LM_LSTM(embedding_dim=args.embedding_size, hidden_size=args.hidden_size, num_steps=args.num_steps, batch_size=args.batch_size,
                   vocab_size=vocab_size, num_layers=args.num_layers, dp_keep_prob=args.dp_keep_prob)
-
+  
+  if args.vis_bounds:
+    p = args.checkpoint if args.eval else args.save
+    visualizer = BoundaryVisualizer(args.data_set,  model, raw_data)
+    global visualizer
   model.cuda()
   print(model)
   print("########## Training ##########################")
