@@ -58,10 +58,12 @@ class BoundaryVisualizer():
         return emb, hidden
     
 
-    def bounds(self, inp, txt):
+    def pred_bounds(self, inp):
         inp = Variable(torch.from_numpy(inp.astype(np.int64)).transpose(0, 1).contiguous()).cuda()
         emb, h0 = self.prepare_inp(inp)
         z,g = self.model.lstm(emb, h0, pred_boundaries=True)
+        return z, g
+
 
     def vis_bounds(self, z, txt):
         out = ""
@@ -80,11 +82,25 @@ class BoundaryVisualizer():
         for i in range(n):
             inp, _ = self.inps[random.randint(0, len(self.inps) - 1)]
             txt = [self.i2w[x] for x in inp[0]]
-            self.bounds(inp, txt)
+            z, _ = self.pred_bounds(inp)
+            self.vis_bounds(z, txt)
     
-    def eval_bounds(self, n=100):
+
+    def eval_bounds(self, n=20):
         for i in range(n):
-            
+            inp, _ = self.inps[random.randint(0, len(self.inps) - 1)]
+            txt = [self.i2w[x] for x in inp[0]]
+            z, _ = self.pred_bounds(inp)
+            ps, rs = [[] for x in range(z.shape[0])], [[] for x in range(z.shape[0])]
+            for j in range(len(z)):
+                y_pred =  z[j].astype("int")
+                y = np.array(map(lambda x: 1 if x == " " else 0, txt))
+                prec = sum(y_pred[np.where(y)[0]] == 1) / float(len(np.where(y_pred ==1)[0]))
+                rec = sum(y[np.where(y_pred)[0]] == 1) / float(len(np.where(y ==1)[0]))
+                ps[j].append(prec)
+                rs[j].append(rec)
+        for i in range(len(ps)):
+            print("Precision {}".format(np.mean(ps[i])), "Recall {}".format(np.mean(rs[i])))
 
 if __name__ == "__main__":
     #run_vis()

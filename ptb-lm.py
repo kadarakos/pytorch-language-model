@@ -96,7 +96,8 @@ def run_epoch(model, data, optimizer, is_train=False):
       optimizer.step()
       if step % (epoch_size // 10) == 10:
         if args.vis_bounds:
-            visualizer.run_vis(1)  
+            visualizer.run_vis(1)
+            visualizer.eval_bounds()
         print("{} : {} {:8.4f} speed: {} wps".format(step * 1.0 / epoch_size, metric, perf,
                                                        iters * model.batch_size / (time.time() - start_time)))
   return perf
