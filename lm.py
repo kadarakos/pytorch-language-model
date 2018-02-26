@@ -1,6 +1,6 @@
 import torch.nn as nn
 from torch.autograd import Variable
-from denura import topdown, ran, hmlstm
+from denura import topdown, ran, hmlstm, simple_ran
 
 class LM_LSTM(nn.Module):
   """Simple LSMT-based language model"""
@@ -15,7 +15,7 @@ class LM_LSTM(nn.Module):
     self.num_layers = num_layers
     self.dropout = nn.Dropout(1 - dp_keep_prob)
     self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
-    self.lstm =  hmlstm.HMLSTM(input_size=self.embedding_dim,
+    self.lstm = hmlstm.HMLSTM(input_size=self.embedding_dim,
                         hidden_size=self.hidden_size,
                         num_layers=num_layers,
                         dropout=1 - dp_keep_prob)
@@ -36,8 +36,14 @@ class LM_LSTM(nn.Module):
                               
   def init_hidden(self):
     weight = next(self.parameters()).data
-    return (Variable(weight.new(self.num_layers, self.batch_size, self.hidden_size).zero_()),
-            Variable(weight.new(self.num_layers, self.batch_size, self.hidden_size).zero_()))
+    if isinstance(self.lstm, hmlstm.HMLSTM):
+        Ht = [Variable(weight.new(self.batch_size, self.hidden_size).zero_()) for x in range(self.num_layers)]
+        C = [Variable(weight.new(self.batch_size, self.hidden_size).zero_()) for x in range(self.num_layers)]
+        Z = [Variable(weight.new(self.batch_size).zero_()) for x in range(self.num_layers - 1)]
+        return [Ht, C, Z]
+    else:
+        return (Variable(weight.new(self.num_layers, self.batch_size, self.hidden_size).zero_()),
+                Variable(weight.new(self.num_layers, self.batch_size, self.hidden_size).zero_()))
 
   def forward(self, inputs, hidden):
     embeds = self.dropout(self.word_embeddings(inputs))
