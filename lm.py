@@ -1,10 +1,11 @@
 import torch.nn as nn
 from torch.autograd import Variable
-from denura import topdown, ran, hmlstm, simple_ran
+from denura import topdown, hmlstm, lstm
+
 
 class LM_LSTM(nn.Module):
   """Simple LSMT-based language model"""
-  def __init__(self, embedding_dim, hidden_size, num_steps, batch_size, vocab_size, num_layers, dp_keep_prob):
+  def __init__(self, embedding_dim, rnn_type, hidden_size, num_steps, batch_size, vocab_size, num_layers, dp_keep_prob):
     super(LM_LSTM, self).__init__()
     self.embedding_dim = embedding_dim
     self.hidden_size = hidden_size
@@ -15,10 +16,18 @@ class LM_LSTM(nn.Module):
     self.num_layers = num_layers
     self.dropout = nn.Dropout(1 - dp_keep_prob)
     self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
-    self.lstm = hmlstm.HMLSTM(input_size=self.embedding_dim,
-                        hidden_size=self.hidden_size,
-                        num_layers=num_layers,
-                        dropout=1 - dp_keep_prob)
+    if rnn_type == 'lstm':
+        cell = nn.LSTM
+    elif rnn.type == 'custom-lstm':
+        cell = lstm.LSTM
+    elif rnn.type == 'topdown':
+        cell = topdown.TopDownLSTM
+    elif rnn_type == 'hmlstm':
+        cell = hmlstm.HMLSTM
+    self.lstm = cell(input_size=self.embedding_dim,
+                     hidden_size=self.hidden_size,
+                     num_layers=num_layers,
+                     dropout=1 - dp_keep_prob)
     self.sm_fc = nn.Linear(in_features=self.hidden_size,
                            out_features=vocab_size)
     self.init_weights()

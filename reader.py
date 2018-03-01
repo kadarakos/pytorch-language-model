@@ -101,7 +101,7 @@ def ptb_char_raw_data(data_path=None, prefix="ptb.char"):
   valid_w = open(valid_path).read().split()
   test_w = open(test_path).read().split()
   unique_chars = set(train_w)
-  word_to_id = dict(k: v  for k, v in  zip(unique_chars, range(len(unique_chars))))
+  word_to_id = {k: v  for k, v in  zip(unique_chars, range(len(unique_chars)))}
   id_2_word = {v: k for v, k in word_to_id.items()}
   train_data = _file_to_word_ids(train_w, word_to_id)
   valid_data = _file_to_word_ids(valid_w, word_to_id)
@@ -109,7 +109,7 @@ def ptb_char_raw_data(data_path=None, prefix="ptb.char"):
   return train_data, valid_data, test_data, word_to_id, id_2_word
 
 
-def text9_raw_data(data_path=None):
+def text8_raw_data(data_path=None):
   """Load text8 raw data from "data_path".
   Reads the text8 text file, converts strings to integer ids,
   and performs mini-batching of the inputs. Uses the standard
