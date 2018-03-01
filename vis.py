@@ -77,6 +77,7 @@ class BoundaryVisualizer():
                     out += c + "|"
                 else:
                     out += c
+            print(out)
 
     def run_vis(self, n=10):
         for i in range(n):

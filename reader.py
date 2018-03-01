@@ -80,8 +80,36 @@ def ptb_raw_data(data_path=None, prefix="ptb"):
   test_data = _file_to_word_ids(test_w, word_to_id)
   return train_data, valid_data, test_data, word_to_id, id_2_word
 
+def ptb_char_raw_data(data_path=None, prefix="ptb.char"):
+  """Load PTB raw data from data directory "data_path".
+  Reads PTB text files, converts strings to integer ids,
+  and performs mini-batching of the inputs.
+  The PTB dataset comes from Tomas Mikolov's webpage:
+  http://www.fit.vutbr.cz/~imikolov/rnnlm/simple-examples.tgz
+  Args:
+    data_path: string path to the directory where simple-examples.tgz has
+      been extracted.
+  Returns:
+    tuple (train_data, valid_data, test_data, vocabulary)
+    where each of the data objects can be passed to PTBIterator.
+  """
 
-def text8_raw_data(data_path=None):
+  train_path = os.path.join(data_path, prefix + ".train.txt")
+  valid_path = os.path.join(data_path, prefix + ".valid.txt")
+  test_path = os.path.join(data_path, prefix + ".test.txt")
+  train_w = open(train_path).read().split()
+  valid_w = open(valid_path).read().split()
+  test_w = open(test_path).read().split()
+  unique_chars = set(train_w)
+  word_to_id = dict(k: v  for k, v in  zip(unique_chars, range(len(unique_chars))))
+  id_2_word = {v: k for v, k in word_to_id.items()}
+  train_data = _file_to_word_ids(train_w, word_to_id)
+  valid_data = _file_to_word_ids(valid_w, word_to_id)
+  test_data = _file_to_word_ids(test_w, word_to_id)
+  return train_data, valid_data, test_data, word_to_id, id_2_word
+
+
+def text9_raw_data(data_path=None):
   """Load text8 raw data from "data_path".
   Reads the text8 text file, converts strings to integer ids,
   and performs mini-batching of the inputs. Uses the standard
