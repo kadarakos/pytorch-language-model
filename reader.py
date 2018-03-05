@@ -101,11 +101,34 @@ def ptb_char_raw_data(data_path=None, prefix="ptb.char"):
   valid_w = open(valid_path).read().split()
   test_w = open(test_path).read().split()
   unique_chars = set(train_w)
-  word_to_id = {k: v  for k, v in  zip(unique_chars, range(len(unique_chars)))}
-  id_2_word = {v: k for v, k in word_to_id.items()}
+  word_to_id = {k: v  for k, v in zip(unique_chars, range(len(unique_chars)))}
+  id_2_word = {v: k for k, v in word_to_id.items()}
   train_data = _file_to_word_ids(train_w, word_to_id)
   valid_data = _file_to_word_ids(valid_w, word_to_id)
   test_data = _file_to_word_ids(test_w, word_to_id)
+  return train_data, valid_data, test_data, word_to_id, id_2_word
+
+
+def ptb_char_raw_data_cooijmans(data_path=None):
+  """Load PTB raw data from NPZ file.
+
+  Reads PTB NPZ file and load train/valid/test data.
+  The NPZ file is the one used by the following code
+  https://github.com/cooijmanstim/recurrent-batch-normalization/blob/master/penntreebank.py#L61
+
+  Args:
+    data_path: string path to the NPZ file.
+  Returns:
+    tuple (train_data, valid_data, test_data, vocabulary)
+    where each of the data objects can be passed to PTBIterator.
+  """
+  data = np.load(data_path)
+  unique_chars = data["vocab"]
+  word_to_id = {k: v  for k, v in zip(unique_chars, range(len(unique_chars)))}
+  id_2_word = {v: k for k, v in word_to_id.items()}
+  train_data = data['train']
+  valid_data = data['valid']
+  test_data = data['test']
   return train_data, valid_data, test_data, word_to_id, id_2_word
 
 
@@ -158,7 +181,7 @@ def coco_raw_data(data_path=None):
   return train_data, valid_data, test_data, word_to_id, id_2_word
 
 
-def ptb_iterator(raw_data, batch_size, num_steps):
+def ptb_iterator(raw_data, batch_size, num_steps, augment=False):
   """Iterate on the raw PTB data.
   This generates batch_size pointers into the raw PTB data, and allows
   minibatch iteration along these pointers.
@@ -174,6 +197,11 @@ def ptb_iterator(raw_data, batch_size, num_steps):
     ValueError: if batch_size or num_steps are too high.
   """
   raw_data = np.array(raw_data, dtype=np.int32)
+
+  if augment:
+    # https://github.com/cooijmanstim/recurrent-batch-normalization/blob/master/penntreebank.py#L93
+    offset = np.random.randint(num_steps)
+    raw_data = raw_data[offset:]
 
   data_len = len(raw_data)
   batch_len = data_len // batch_size
