@@ -1,13 +1,14 @@
 import torch.nn as nn
 from torch.autograd import Variable
-from denura import topdown, hmlstm, lstm
+# from denura import topdown, ran, hmlstm, simple_ran
+from denura import topdown, hmlstm, simple_ran
+from denura.util import OneHot
 
 
 class LM_LSTM(nn.Module):
   """Simple LSMT-based language model"""
   def __init__(self, embedding_dim, rnn_type, hidden_size, num_steps, batch_size, vocab_size, num_layers, dp_keep_prob):
     super(LM_LSTM, self).__init__()
-    self.embedding_dim = embedding_dim
     self.hidden_size = hidden_size
     self.num_steps = num_steps
     self.batch_size = batch_size
@@ -15,7 +16,14 @@ class LM_LSTM(nn.Module):
     self.dp_keep_prob = dp_keep_prob
     self.num_layers = num_layers
     self.dropout = nn.Dropout(1 - dp_keep_prob)
-    self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
+
+    if embedding_dim == 0:
+        self.word_embeddings = OneHot(vocab_size)
+        self.embedding_dim = vocab_size
+    else:
+        self.word_embeddings = nn.Embedding(vocab_size, embedding_dim)
+        self.embedding_dim = embedding_dim
+
     if rnn_type == 'lstm':
         cell = nn.LSTM
     elif rnn.type == 'custom-lstm':
@@ -34,15 +42,18 @@ class LM_LSTM(nn.Module):
   #TODO make orthogonal init optional
   def init_weights(self):
     init_range = 0.1
-    self.word_embeddings.weight.data.uniform_(-init_range, init_range)
+    if not isinstance(self.word_embeddings, OneHot):
+        self.word_embeddings.weight.data.uniform_(-init_range, init_range)
+
     self.sm_fc.bias.data.fill_(0.0)
-    self.sm_fc.weight.data.uniform_(-init_range, init_range)
+    # self.sm_fc.weight.data.uniform_(-init_range, init_range)
+    nn.init.orthogonal(self.sm_fc.weight)
     for name, param in self.lstm.named_parameters():
       if 'bias' in name:
         nn.init.constant(param, 0.0)
       elif 'weight' in name:
         nn.init.orthogonal(param)
-                              
+
   def init_hidden(self):
     weight = next(self.parameters()).data
     if isinstance(self.lstm, hmlstm.HMLSTM):

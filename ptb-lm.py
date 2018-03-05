@@ -21,12 +21,12 @@ torch.manual_seed(seed)
 np.random.seed(seed)
 
 parser = argparse.ArgumentParser(description='Simplest LSTM-based language model in PyTorch')
-parser.add_argument( '--data_set', type=str, default='ptb', 
-                    choices=['ptb', 'ptb-char', 'text8', 'coco'])
+parser.add_argument( '--data_set', type=str, default='ptb',
+                    choices=['ptb', 'ptb-char', 'ptb-char-cooijmans', 'text8', 'coco'])
 parser.add_argument('--data_path', type=str, default='data', help='location of the data corpus')
 parser.add_argument('--embedding_size', type=int, default=1500,
                     help='size of word embeddings')
-parser.add_argument('--rnn_type', type=str, default='lstm', 
+parser.add_argument('--rnn_type', type=str, default='lstm',
                     choices=['lstm', 'custom-lstm', 'topdown', 'hmlstm'],
                     help='Type of RNN to run.')
 parser.add_argument('--hidden_size', type=int, default=1500,
@@ -52,6 +52,8 @@ parser.add_argument('--grad_clip', type=float, default=0.25,
                     help='Gradient clipping bound.')
 parser.add_argument('--patience', type=int, default=2,
                     help='Number of epochs to continue running without improvement on the validation set')
+parser.add_argument('--augment', action='store_true',
+                    help='use data augmentation')
 parser.add_argument('--save', type=str, default='lm_model',
                     help='Directory to save the final model to')
 parser.add_argument('--checkpoint', type=str,
@@ -91,7 +93,7 @@ def run_epoch(model, data, optimizer, is_train=False):
     hidden = model.init_hidden()
     costs = 0.0
     iters = 0
-    data_iterator = reader.ptb_iterator(data, model.batch_size, model.num_steps)
+    data_iterator = reader.ptb_iterator(data, model.batch_size, model.num_steps, augment=args.augment and is_train)
     for step, (x, y) in enumerate(data_iterator):
         inputs = Variable(torch.from_numpy(x.astype(np.int64)).transpose(0, 1).contiguous()).cuda()
         targets = Variable(torch.from_numpy(y.astype(np.int64)).transpose(0, 1).contiguous()).cuda()
@@ -125,6 +127,8 @@ if __name__ == "__main__":
         raw_data = reader.coco_raw_data(data_path=args.data_path)
     elif args.data_set == 'ptb-char':
         raw_data = reader.ptb_char_raw_data(data_path=args.data_path)
+    elif args.data_set == 'ptb-char-cooijmans':
+        raw_data = reader.ptb_char_raw_data_cooijmans(data_path=args.data_path)
     else:
         raw_data = reader.ptb_raw_data(data_path=args.data_path)
     train_data, valid_data, test_data, word_to_id, id_2_word = raw_data
@@ -181,7 +185,7 @@ if __name__ == "__main__":
                 'model': model.state_dict(),
                 'best': best_val,
                 'args': args,
-                             }, 
+                             },
                  is_best, path=args.save)
         if is_best:
             print("New best {}".format(val_ppl))
